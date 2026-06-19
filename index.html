@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>客户管理系统</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--sf:#fff;--s2:#f0efe9;--s3:#e6e5de;
+  --bd:rgba(0,0,0,0.09);--bd2:rgba(0,0,0,0.16);
+  --tx:#1a1a18;--t2:#6b6b65;--t3:#a0a09a;
+  --ac:#2563eb;--al:#eff6ff;--at:#1d4ed8;
+  --gr:#16a34a;--gb:#f0fdf4;
+  --am:#b45309;--ab:#fffbeb;
+  --rd:#dc2626;--rb:#fef2f2;
+  --pu:#7c3aed;--pb:#f5f3ff;
+  --r:10px;--rs:6px;
+  --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;display:flex;font-size:14px;line-height:1.5}
+/* LOGIN */
+.auth-wrap{flex:1;display:flex;align-items:center;justify-content:center}
+.auth-box{background:var(--sf);border-radius:14px;padding:36px 40px;width:380px;box-shadow:0 4px 24px rgba(0,0,0,.1)}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.auth-logo .lm{width:36px;height:36px;background:var(--ac);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px}
+.auth-logo .lt{font-size:18px;font-weight:600}
+.auth-box h2{font-size:15px;font-weight:600;margin-bottom:20px}
+.lf{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.lf label{font-size:12px;font-weight:500;color:var(--t2)}
+.lf input{padding:9px 11px;border:.5px solid var(--bd2);border-radius:var(--rs);font-size:14px;color:var(--tx);background:var(--sf);font-family:inherit;outline:none;transition:border-color .12s}
+.lf input:focus{border-color:var(--ac)}
+.auth-err{font-size:12px;color:var(--rd);margin-bottom:10px;min-height:18px}
+.auth-btn{width:100%;padding:10px;border-radius:var(--rs);border:none;background:var(--ac);color:#fff;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:background .12s}
+.auth-btn:hover{background:var(--at)}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed}
+.auth-switch{margin-top:14px;font-size:12px;color:var(--t3);text-align:center}
+.auth-switch span{color:var(--at);cursor:pointer}
+.auth-switch span:hover{text-decoration:underline}
+/* APP */
+.app{display:none;flex:1;overflow:hidden}
+.app.on{display:flex}
+.sidebar{width:214px;min-width:214px;background:var(--sf);border-right:.5px solid var(--bd);display:flex;flex-direction:column;height:100vh;position:sticky;top:0;overflow-y:auto}
+.logo{padding:16px 14px 12px;border-bottom:.5px solid var(--bd);display:flex;align-items:center;gap:9px}
+.logo-m{width:28px;height:28px;background:var(--ac);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0}
+.logo-t{font-size:15px;font-weight:600;flex:1}
+.snav{padding:8px;flex:1}
+.nsec{padding:10px 10px 4px;font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.08em;text-transform:uppercase}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--rs);cursor:pointer;color:var(--t2);font-size:13px;transition:background .12s;margin-bottom:1px;user-select:none;position:relative}
+.ni:hover{background:var(--s2);color:var(--tx)}
+.ni.on{background:var(--al);color:var(--at);font-weight:500}
+.ni .ico{width:17px;text-align:center;flex-shrink:0}
+.ni .bdg{margin-left:auto;background:var(--ac);color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;font-weight:500}
+.ni .rdot{position:absolute;right:9px;top:8px;width:7px;height:7px;background:var(--rd);border-radius:50%;border:1.5px solid var(--sf)}
+.sidebar-foot{padding:10px 12px;border-top:.5px solid var(--bd);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.sidebar-foot .uname{font-size:12px;color:var(--t2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.role-badge{font-size:10px;padding:1px 6px;border-radius:8px;font-weight:500;flex-shrink:0}
+.role-badge.admin{background:var(--pb);color:var(--pu)}
+.role-badge.staff{background:var(--s2);color:var(--t2)}
+.logout-btn{background:none;border:none;color:var(--t3);cursor:pointer;padding:4px 6px;border-radius:4px;font-size:12px;flex-shrink:0}
+.logout-btn:hover{background:var(--rb);color:var(--rd)}
+.topbar{background:var(--sf);border-bottom:.5px solid var(--bd);padding:11px 20px;display:flex;align-items:center;gap:9px;position:sticky;top:0;z-index:10;flex-shrink:0}
+.topbar h1{font-size:16px;font-weight:600;flex:1}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--gr);flex-shrink:0}
+.sync-dot.syncing{background:var(--am);animation:blink 1s infinite}
+.sync-dot.err{background:var(--rd)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.srch{position:relative}
+.srch input{width:210px;padding:6px 10px 6px 30px;border:.5px solid var(--bd2);border-radius:var(--rs);background:var(--s2);font-size:13px;color:var(--tx);outline:none;font-family:inherit}
+.srch input:focus{border-color:var(--ac);background:var(--sf)}
+.si{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:12px;pointer-events:none}
+.ftabs{display:flex;gap:3px}
+.ft{padding:4px 10px;border-radius:20px;font-size:12px;cursor:pointer;color:var(--t2);border:.5px solid transparent;transition:all .12s;user-select:none;white-space:nowrap}
+.ft:hover{background:var(--s2)}
+.ft.on{background:var(--al);color:var(--at);font-weight:500}
+.btn{padding:6px 12px;border-radius:var(--rs);border:.5px solid var(--bd2);background:var(--sf);color:var(--tx);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-family:inherit;transition:background .12s;white-space:nowrap;line-height:1.4}
+.btn:hover{background:var(--s2)}
+.btn.pr{background:var(--ac);color:#fff;border-color:var(--ac)}
+.btn.pr:hover{background:var(--at)}
+.btn.dng{color:var(--rd);border-color:transparent}
+.btn.dng:hover{background:var(--rb)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.main-col{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.page{display:none;flex-direction:column;flex:1;overflow:hidden}
+.page.on{display:flex}
+.sc-area{padding:20px;overflow-y:auto;flex:1}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px}
+.sc{background:var(--sf);border:.5px solid var(--bd);border-radius:var(--r);padding:13px 15px;box-shadow:var(--sh)}
+.sc .sico{width:29px;height:29px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:8px}
+.sc .slbl{font-size:11px;color:var(--t2);margin-bottom:3px}
+.sc .sval{font-size:23px;font-weight:600;line-height:1}
+.tcard{background:var(--sf);border:.5px solid var(--bd);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.thead2{padding:11px 15px;border-bottom:.5px solid var(--bd);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.thead2 h2{font-size:13.5px;font-weight:600;flex:1}
+table{width:100%;border-collapse:collapse}
+th{padding:8px 12px;text-align:left;font-size:11.5px;font-weight:500;color:var(--t2);border-bottom:.5px solid var(--bd);background:var(--s2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:.5px solid var(--bd);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.clk:hover td{background:var(--s2);cursor:pointer}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.cel{display:flex;align-items:center;gap:8px}
+.nn{font-weight:500;font-size:13px}
+.nc{font-size:11.5px;color:var(--t3)}
+.bs{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11.5px;font-weight:500}
+.bs.active{background:var(--gb);color:var(--gr)}
+.bs.potential{background:var(--ab);color:var(--am)}
+.bs.inactive{background:var(--s2);color:var(--t2)}
+.vbadge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:500}
+.vbadge.high{background:#fef2f2;color:#b91c1c}
+.vbadge.mid{background:var(--al);color:var(--at)}
+.vbadge.low{background:var(--s2);color:var(--t2)}
+.tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:11px;background:var(--s2);color:var(--t2);margin:1px 2px 1px 0}
+.acts{display:flex;gap:3px;opacity:0;transition:opacity .12s}
+tr:hover .acts{opacity:1}
+.ab{width:26px;height:26px;border-radius:var(--rs);border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:13px;transition:background .12s;font-family:inherit}
+.ab:hover{background:var(--s2);color:var(--tx)}
+.ab.dl:hover{background:var(--rb);color:var(--rd)}
+.no-data{text-align:center;padding:36px 20px;color:var(--t3);font-size:13px}
+.lc-overdue{color:var(--rd);font-weight:500}
+.lc-warn{color:var(--am)}
+.lc-ok{color:var(--t2)}
+.split{display:flex;flex:1;overflow:hidden}
+.tbl-area{flex:1;padding:20px;overflow-y:auto;min-width:0}
+.dp{width:350px;min-width:350px;background:var(--sf);border-left:.5px solid var(--bd);display:none;flex-direction:column;overflow:hidden}
+.dp.on{display:flex}
+.dp-hd{padding:12px 14px;border-bottom:.5px solid var(--bd);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.dp-hd h3{font-size:14px;font-weight:600;flex:1}
+.dp-body{padding:14px;overflow-y:auto;flex:1}
+.dp-av-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.dp-av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;flex-shrink:0}
+.dp-name{font-size:16px;font-weight:600}
+.dp-co{font-size:12.5px;color:var(--t2);margin-top:2px}
+.ds{margin-bottom:14px}
+.ds-ttl{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.dr{display:flex;gap:8px;padding:5px 0;border-bottom:.5px solid var(--bd);align-items:flex-start}
+.dr:last-child{border-bottom:none}
+.dl{font-size:12px;color:var(--t2);min-width:60px;padding-top:1px;flex-shrink:0}
+.dv{font-size:13px;flex:1;word-break:break-all}
+.plat-badge{display:inline-flex;align-items:center;gap:5px;background:var(--s2);border-radius:5px;padding:3px 8px;font-size:12px;margin:2px 4px 2px 0}
+.plat-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.note-item{background:var(--s2);border-radius:var(--rs);padding:9px 11px;margin-bottom:7px}
+.note-meta{font-size:11px;color:var(--t3);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.note-txt{font-size:13px;line-height:1.6;white-space:pre-wrap;color:var(--tx)}
+.ndel{margin-left:auto;background:none;border:none;color:var(--t3);cursor:pointer;font-size:12px;padding:0 2px;line-height:1}
+.ndel:hover{color:var(--rd)}
+.add-note{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.add-note textarea{padding:7px 9px;border:.5px solid var(--bd2);border-radius:var(--rs);font-size:13px;font-family:inherit;outline:none;background:var(--sf);color:var(--tx);resize:vertical;min-height:56px}
+.add-note textarea:focus{border-color:var(--ac)}
+.fu-item{background:var(--s2);border-radius:var(--rs);padding:8px 10px;margin-bottom:5px;display:flex;gap:8px;align-items:flex-start}
+.fu-left{display:flex;flex-direction:column;gap:3px;min-width:62px;flex-shrink:0}
+.fu-date{font-size:10.5px;color:var(--t3)}
+.fu-type{font-size:10px;padding:1px 5px;border-radius:3px;font-weight:500;display:inline-block}
+.fu-type.call{background:var(--al);color:var(--at)}
+.fu-type.meet{background:var(--gb);color:var(--gr)}
+.fu-type.msg{background:var(--ab);color:var(--am)}
+.fu-type.other{background:var(--s2);color:var(--t2)}
+.fu-text{font-size:13px;flex:1;line-height:1.5}
+.fu-del{background:none;border:none;color:var(--t3);cursor:pointer;font-size:12px;padding:0 2px;line-height:1;flex-shrink:0}
+.fu-del:hover{color:var(--rd)}
+.add-fu{display:flex;gap:6px;margin-top:6px;align-items:flex-start}
+.add-fu-fields{flex:1;display:flex;flex-direction:column;gap:5px}
+.add-fu select,.add-fu input{padding:6px 9px;border:.5px solid var(--bd2);border-radius:var(--rs);font-size:13px;color:var(--tx);background:var(--sf);font-family:inherit;outline:none}
+.add-fu select:focus,.add-fu input:focus{border-color:var(--ac)}
+.remind-row{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap}
+.remind-row label{font-size:12px;color:var(--t2)}
+.remind-row input[type=number]{width:52px;padding:4px 6px;border:.5px solid var(--bd2);border-radius:var(--rs);font-size:12px;font-family:inherit;outline:none}
+.remind-row input[type=number]:focus{border-color:var(--ac)}
+.remind-item{background:var(--rb);border:.5px solid rgba(220,38,38,.2);border-radius:var(--rs);padding:8px 10px;margin-bottom:5px;display:flex;gap:8px;align-items:flex-start}
+.remind-item.done{background:var(--s2);border-color:transparent;opacity:.6}
+.ri-left{display:flex;flex-direction:column;gap:2px;min-width:72px;flex-shrink:0}
+.ri-due{font-size:10.5px;color:var(--rd);font-weight:500}
+.ri-due.ok{color:var(--gr)}
+.ri-due.soon{color:var(--am)}
+.ri-client{font-size:12px;font-weight:500;color:var(--at);cursor:pointer}
+.ri-client:hover{text-decoration:underline}
+.ri-text{font-size:13px;flex:1;line-height:1.5}
+.ri-acts{display:flex;gap:4px;flex-shrink:0}
+.chain{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:4px 0}
+.cnode{display:inline-flex;align-items:center;gap:4px;background:var(--s2);border-radius:5px;padding:3px 8px;font-size:12px;cursor:pointer;border:.5px solid transparent;transition:all .12s}
+.cnode:hover{border-color:var(--ac);color:var(--at)}
+.cnode.me{background:var(--al);color:var(--at);font-weight:500}
+.carrow{color:var(--t3);font-size:11px}
+.ref-child{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--rs);background:var(--s2);cursor:pointer;transition:background .12s;margin-bottom:4px}
+.ref-child:hover{background:var(--s3)}
+.rc-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;flex-shrink:0}
+.dup-alert{background:var(--ab);border:.5px solid rgba(180,83,9,.25);border-radius:var(--rs);padding:10px 12px;margin-bottom:14px}
+.dup-alert-ttl{font-size:12px;font-weight:600;color:var(--am);margin-bottom:8px}
+.dup-card{background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--rs);padding:8px 10px;margin-bottom:6px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .12s}
+.dup-card:hover{background:var(--s2)}
+.dup-reason{font-size:10.5px;color:var(--am);margin-top:2px}
+.log-item{padding:10px 15px;border-bottom:.5px solid var(--bd);font-size:12.5px}
+.log-item:last-child{border-bottom:none}
+.log-head{display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap}
+.log-action{font-weight:500;font-size:12px;padding:1px 7px;border-radius:4px}
+.log-action.create{background:var(--gb);color:var(--gr)}
+.log-action.update{background:var(--al);color:var(--at)}
+.log-action.delete{background:var(--rb);color:var(--rd)}
+.log-action.dup{background:var(--ab);color:var(--am)}
+.log-time{font-size:11px;color:var(--t3)}
+.log-by{font-size:11px;color:var(--t3)}
+.log-client{font-weight:500}
+.log-diff{margin-top:4px;display:flex;flex-direction:column;gap:2px}
+.diff-row{display:flex;gap:6px;font-size:11.5px;align-items:flex-start}
+.diff-field{color:var(--t2);min-width:54px;flex-shrink:0}
+.diff-old{color:var(--rd);text-decoration:line-through;word-break:break-all}
+.diff-new{color:var(--gr);word-break:break-all}
+/* 用户管理 */
+.user-card{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:.5px solid var(--bd)}
+.user-card:last-child{border-bottom:none}
+.user-info{flex:1}
+.user-name{font-size:13px;font-weight:500}
+.user-meta{font-size:11.5px;color:var(--t2);margin-top:2px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:100;display:none;align-items:center;justify-content:center}
+.ov.on{display:flex}
+.modal{background:var(--sf);border-radius:14px;width:580px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.18);display:flex;flex-direction:column}
+.mh{padding:16px 22px 12px;border-bottom:.5px solid var(--bd);display:flex;align-items:center;gap:9px;flex-shrink:0}
+.mh h3{font-size:15px;font-weight:600;flex:1}
+.mb{padding:18px 22px;overflow-y:auto}
+.mf{padding:10px 22px 16px;border-top:.5px solid var(--bd);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.fi{display:flex;flex-direction:column;gap:4px}
+.fi.full{grid-column:1/-1}
+.fi label{font-size:12px;font-weight:500;color:var(--t2)}
+.fi input,.fi select,.fi textarea{padding:7px 9px;border:.5px solid var(--bd2);border-radius:var(--rs);font-size:13px;color:var(--tx);background:var(--sf);font-family:inherit;outline:none;transition:border-color .12s}
+.fi input:focus,.fi select:focus,.fi textarea:focus{border-color:var(--ac)}
+.fi textarea{resize:vertical;min-height:52px}
+.plat-rows{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.plat-row{display:flex;gap:7px;align-items:center}
+.plat-row select{width:126px;flex-shrink:0;padding:6px 8px;border:.5px solid var(--bd2);border-radius:var(--rs);font-size:13px;color:var(--tx);background:var(--sf);font-family:inherit;outline:none}
+.plat-row input{flex:1;padding:6px 9px;border:.5px solid var(--bd2);border-radius:var(--rs);font-size:13px;color:var(--tx);background:var(--sf);font-family:inherit;outline:none}
+.plat-row select:focus,.plat-row input:focus{border-color:var(--ac)}
+.plat-del{background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px;border-radius:4px}
+.plat-del:hover{color:var(--rd);background:var(--rb)}
+.ref-wrap{position:relative}
+.ref-wrap>input{width:100%;padding:7px 9px;border:.5px solid var(--bd2);border-radius:var(--rs);font-size:13px;color:var(--tx);background:var(--sf);font-family:inherit;outline:none}
+.ref-wrap>input:focus{border-color:var(--ac)}
+.ref-dd{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--rs);box-shadow:var(--sh);z-index:200;max-height:180px;overflow-y:auto;display:none}
+.ref-dd.open{display:block}
+.ref-opt{padding:7px 10px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:7px}
+.ref-opt:hover{background:var(--s2)}
+.ref-opt.sel{background:var(--al);color:var(--at)}
+.ref-clr{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t3);cursor:pointer;font-size:13px;line-height:1;padding:2px;display:none}
+.ref-clr:hover{color:var(--tx)}
+.fbar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:.5px solid var(--bd);background:var(--s2);font-size:12px;flex-wrap:wrap;flex-shrink:0}
+.fbar label{color:var(--t2)}
+.fbar select{padding:4px 8px;border:.5px solid var(--bd2);border-radius:var(--rs);font-size:12px;font-family:inherit;color:var(--tx);background:var(--sf);outline:none}
+.fbar select:focus{border-color:var(--ac)}
+.tree-wrap{padding:22px;overflow:auto;flex:1}
+.tree-node{display:flex;flex-direction:column}
+.tree-row{display:flex;align-items:center}
+.t-ind{width:22px;flex-shrink:0;position:relative;align-self:stretch}
+.t-ind::after{content:"";position:absolute;left:10px;top:50%;width:11px;height:1px;background:var(--bd2)}
+.ch-wrap{padding-left:22px;position:relative}
+.ch-wrap::before{content:"";position:absolute;left:10px;top:0;bottom:14px;width:1px;background:var(--bd2)}
+.tcn{display:flex;align-items:center;gap:8px;padding:6px 11px;background:var(--sf);border:.5px solid var(--bd);border-radius:var(--rs);cursor:pointer;transition:all .12s;margin:3px 0;box-shadow:var(--sh)}
+.tcn:hover{border-color:var(--ac);background:var(--al)}
+.tav{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0}
+.tn{font-size:13px;font-weight:500}
+.tc2{font-size:11px;color:var(--t2)}
+.tcnt{font-size:11px;color:var(--t3);margin-left:auto}
+.ttog{width:18px;height:18px;border:none;background:var(--s2);border-radius:4px;cursor:pointer;font-size:11px;flex-shrink:0;margin-left:4px;display:flex;align-items:center;justify-content:center}
+.ttog:hover{background:var(--s3)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:4px}
+</style>
+</head>
+<body>
+
+<!-- 登录 -->
+<div class="auth-wrap" id="auth-login">
+  <div class="auth-box">
+    <div class="auth-logo"><div class="lm">&#x1F9D1;&#x200D;&#x1F4BC;</div><span class="lt">客户管理系统</span></div>
+    <h2>登录</h2>
+    <div class="lf"><label>用户名</label><input id="l-user" placeholder="用户名" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()"></div>
+    <div class="lf"><label>密码</label><input id="l-pass" type="password" placeholder="密码" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="auth-err" id="l-err"></div>
+    <button class="auth-btn" id="l-btn" onclick="doLogin()">登录</button>
+    <div class="auth-switch">没有账号？<span onclick="showReg()">注册</span></div>
+  </div>
+</div>
+
+<!-- 注册 -->
+<div class="auth-wrap" id="auth-reg" style="display:none">
+  <div class="auth-box">
+    <div class="auth-logo"><div class="lm">&#x1F9D1;&#x200D;&#x1F4BC;</div><span class="lt">注册账号</span></div>
+    <h2>创建账号</h2>
+    <div class="lf"><label>用户名 *</label><input id="r-user" placeholder="登录用的用户名" autocomplete="off"></div>
+    <div class="lf"><label>显示名称 *</label><input id="r-display" placeholder="你的真实姓名（显示在记录里）" autocomplete="off"></div>
+    <div class="lf"><label>密码 *</label><input id="r-pass" type="password" placeholder="至少6位" autocomplete="new-password"></div>
+    <div class="lf"><label>确认密码 *</label><input id="r-pass2" type="password" placeholder="再输一次" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()"></div>
+    <div class="auth-err" id="r-err"></div>
+    <button class="auth-btn" id="r-btn" onclick="doRegister()">注册</button>
+    <div class="auth-switch"><span onclick="showLogin()">&#x2190; 返回登录</span></div>
+  </div>
+</div>
+
+<!-- 主应用 -->
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-m">&#x1F9D1;&#x200D;&#x1F4BC;</div>
+      <span class="logo-t">客户管理</span>
+    </div>
+    <nav class="snav">
+      <div class="ni on" data-page="dashboard"><span class="ico">&#x1F4CA;</span>总览</div>
+      <div class="ni" data-page="clients"><span class="ico">&#x1F465;</span>客户列表<span class="bdg" id="bdg">0</span></div>
+      <div class="ni" data-page="reminders"><span class="ico">&#x1F514;</span>待办提醒<span class="rdot" id="rdot" style="display:none"></span></div>
+      <div class="ni" data-page="tree"><span class="ico">&#x1F333;</span>介绍关系树</div>
+      <div class="ni" data-page="followups"><span class="ico">&#x1F5D2;&#xFE0F;</span>跟进记录</div>
+      <div class="ni" data-page="dupes"><span class="ico">&#x26A0;&#xFE0F;</span>去重记录</div>
+      <div class="nsec">管理</div>
+      <div class="ni" data-page="auditlog"><span class="ico">&#x1F4CB;</span>操作日志</div>
+      <!-- 仅管理员可见 -->
+      <div class="ni admin-only" data-page="users" style="display:none"><span class="ico">&#x1F46E;</span>用户管理</div>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="uname" id="uname-lbl"></span>
+      <span class="role-badge" id="role-lbl"></span>
+      <button class="logout-btn" onclick="doLogout()" title="退出登录">&#x2192;</button>
+    </div>
+  </aside>
+
+  <div class="main-col">
+
+    <!-- 总览 -->
+    <div class="page on" id="page-dashboard">
+      <div class="topbar">
+        <h1>总览</h1>
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-txt" style="font-size:11px;color:var(--t3)">已同步</span>
+      </div>
+      <div class="sc-area">
+        <div class="stats">
+          <div class="sc"><div class="sico" style="background:#eff6ff;color:#2563eb">&#x1F465;</div><div class="slbl">我的客户</div><div class="sval" id="d-tot">0</div></div>
+          <div class="sc"><div class="sico" style="background:#f0fdf4;color:#16a34a">&#x2705;</div><div class="slbl">正式客户</div><div class="sval" id="d-act">0</div></div>
+          <div class="sc"><div class="sico" style="background:#fffbeb;color:#b45309">&#x23F3;</div><div class="slbl">潜在客户</div><div class="sval" id="d-pot">0</div></div>
+          <div class="sc"><div class="sico" style="background:#fef2f2;color:#b91c1c">&#x1F514;</div><div class="slbl">待办提醒</div><div class="sval" id="d-rem">0</div></div>
+        </div>
+        <!-- 管理员看全局统计 -->
+        <div id="admin-stats" style="display:none;margin-bottom:18px">
+          <div class="tcard"><div class="thead2"><h2>&#x1F4CA; 全局概览（管理员视角）</h2></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0">
+            <div style="padding:14px 16px;border-right:.5px solid var(--bd)"><div style="font-size:11px;color:var(--t2);margin-bottom:4px">全部客户</div><div style="font-size:22px;font-weight:600" id="g-tot">0</div></div>
+            <div style="padding:14px 16px;border-right:.5px solid var(--bd)"><div style="font-size:11px;color:var(--t2);margin-bottom:4px">业务员数量</div><div style="font-size:22px;font-weight:600" id="g-staff">0</div></div>
+            <div style="padding:14px 16px"><div style="font-size:11px;color:var(--t2);margin-bottom:4px">今日新增</div><div style="font-size:22px;font-weight:600" id="g-today">0</div></div>
+          </div></div>
+        </div>
+        <div class="tcard"><div class="thead2"><h2 id="recent-ttl">最近添加</h2></div><div id="d-recent"></div></div>
+      </div>
+    </div>
+
+    <!-- 客户列表 -->
+    <div class="page" id="page-clients">
+      <div class="topbar">
+        <h1>客户列表</h1>
+        <div class="srch"><span class="si">&#x1F50D;</span><input type="text" id="q" placeholder="姓名、公司、拼音首字母…" autocomplete="off" oninput="renderTable()"></div>
+        <div class="ftabs">
+          <div class="ft on" data-filter="all">全部</div>
+          <div class="ft" data-filter="active">正式</div>
+          <div class="ft" data-filter="potential">潜在</div>
+          <div class="ft" data-filter="inactive">已流失</div>
+        </div>
+        <button class="btn pr" onclick="openAdd()">＋ 新建客户</button>
+      </div>
+      <div class="fbar">
+        <label>价值：</label>
+        <select id="fv" onchange="renderTable()"><option value="">全部</option><option value="high">&#x1F534; 高</option><option value="mid">&#x1F535; 中</option><option value="low">&#x26AA; 普通</option></select>
+        <label style="margin-left:8px">失联超过：</label>
+        <select id="flc" onchange="renderTable()"><option value="">不限</option><option value="7">7天</option><option value="14">14天</option><option value="30">30天</option><option value="60">60天</option><option value="90">90天</option></select>
+        <label style="margin-left:8px">排序：</label>
+        <select id="fsort" onchange="renderTable()">
+          <option value="created_desc">添加时间↓</option><option value="created_asc">添加时间↑</option>
+          <option value="lastcontact_asc">最久未联系</option><option value="lastcontact_desc">最近联系</option>
+          <option value="name_asc">姓名A→Z</option><option value="value_desc">价值高→低</option>
+        </select>
+        <!-- 管理员专用：按业务员筛选 -->
+        <label style="margin-left:8px" id="lbl-owner" class="admin-only" style="display:none">业务员：</label>
+        <select id="fowner" class="admin-only" style="display:none" onchange="renderTable()"><option value="">全部</option></select>
+      </div>
+      <div class="split">
+        <div class="tbl-area">
+          <div class="tcard">
+            <table><thead><tr>
+              <th>姓名 / 公司</th><th>状态</th><th>价值</th><th>平台</th><th>介绍人</th><th>最近联系</th>
+              <th class="admin-only" id="th-owner" style="display:none">归属业务员</th>
+              <th>标签</th><th></th>
+            </tr></thead>
+            <tbody id="tbody"></tbody></table>
+            <div id="tbl-empty" class="no-data" style="display:none">暂无客户</div>
+          </div>
+        </div>
+        <div class="dp" id="dp">
+          <div class="dp-hd"><h3>客户详情</h3><button class="ab" id="dp-close">&#x2715;</button></div>
+          <div class="dp-body" id="dp-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 待办提醒 -->
+    <div class="page" id="page-reminders">
+      <div class="topbar"><h1>待办提醒</h1></div>
+      <div class="sc-area">
+        <div class="tcard"><div class="thead2"><h2>待处理</h2></div><div id="rem-pending"></div></div>
+        <div class="tcard" style="margin-top:16px"><div class="thead2"><h2>已完成</h2></div><div id="rem-done"></div></div>
+      </div>
+    </div>
+
+    <!-- 介绍关系树 -->
+    <div class="page" id="page-tree">
+      <div class="topbar"><h1>介绍关系树</h1><span style="font-size:12px;color:var(--t3)">显示我的客户 · 介绍人可跨业务员</span></div>
+      <div class="tree-wrap" id="tree-wrap"></div>
+    </div>
+
+    <!-- 跟进记录 -->
+    <div class="page" id="page-followups">
+      <div class="topbar"><h1>跟进记录</h1></div>
+      <div class="sc-area"><div class="tcard"><div class="thead2"><h2>全部跟进</h2></div><div id="all-fu"></div></div></div>
+    </div>
+
+    <!-- 去重记录 -->
+    <div class="page" id="page-dupes">
+      <div class="topbar"><h1>去重记录</h1></div>
+      <div class="sc-area"><div class="tcard"><div class="thead2"><h2>检测记录</h2><button class="btn sm dng" onclick="clearDupeLog()">清空</button></div><div id="dup-log-list"></div></div></div>
+    </div>
+
+    <!-- 操作日志 -->
+    <div class="page" id="page-auditlog">
+      <div class="topbar"><h1>操作日志</h1><span id="log-scope" style="font-size:12px;color:var(--t3);margin-left:4px"></span></div>
+      <div class="sc-area"><div class="tcard"><div class="thead2"><h2>操作记录</h2><button class="btn sm dng" onclick="clearAuditLog()">清空</button></div><div id="audit-list"></div></div></div>
+    </div>
+
+    <!-- 用户管理（仅管理员） -->
+    <div class="page admin-only" id="page-users">
+      <div class="topbar"><h1>用户管理</h1></div>
+      <div class="sc-area">
+        <div class="tcard"><div class="thead2"><h2>全部账号</h2></div><div id="user-list"></div></div>
+      </div>
+    </div>
+
+  </div><!-- main-col -->
+</div><!-- app -->
+
+<!-- 客户新建/编辑弹框 -->
+<div class="ov" id="ov">
+  <div class="modal">
+    <div class="mh"><h3 id="modal-ttl">新建客户</h3><button class="ab" id="modal-close">&#x2715;</button></div>
+    <div class="mb">
+      <div id="dup-alert-box" style="display:none"></div>
+      <div class="fg">
+        <div class="fi"><label>姓名 *</label><input id="f-name" autocomplete="off" placeholder="客户姓名" oninput="debounceDupCheck()"></div>
+        <div class="fi"><label>公司</label><input id="f-company" autocomplete="off" placeholder="所在公司" oninput="debounceDupCheck()"></div>
+        <div class="fi"><label>电话</label><input id="f-phone" autocomplete="off" placeholder="联系电话" oninput="debounceDupCheck()"></div>
+        <div class="fi"><label>邮箱</label><input id="f-email" autocomplete="off" placeholder="电子邮箱"></div>
+        <div class="fi"><label>状态</label>
+          <select id="f-status"><option value="potential">潜在客户</option><option value="active">正式客户</option><option value="inactive">已流失</option></select>
+        </div>
+        <div class="fi"><label>客户价值</label>
+          <select id="f-value"><option value="low">&#x26AA; 普通</option><option value="mid">&#x1F535; 中</option><option value="high">&#x1F534; 高</option></select>
+        </div>
+        <div class="fi full"><label>标签（逗号分隔）</label><input id="f-tags" autocomplete="off" placeholder="重要, 长期合作"></div>
+        <div class="fi full">
+          <label>社交平台账号</label>
+          <div class="plat-rows" id="plat-rows"></div>
+          <button class="btn sm" style="margin-top:7px;align-self:flex-start" type="button" onclick="addPlatRow('','')">＋ 添加平台</button>
+        </div>
+        <div class="fi full">
+          <label>介绍人 <span style="font-size:11px;color:var(--t3)">（选填，无介绍人可留空）</span></label>
+          <div class="ref-wrap">
+            <input type="text" id="ref-search" autocomplete="off" placeholder="留空 = 无介绍人，输入姓名搜索…" oninput="filterRefDd()" onfocus="openRefDd()">
+            <button class="ref-clr" id="ref-clr" type="button" onclick="clearRef()">&#x2715;</button>
+            <div class="ref-dd" id="ref-dd"></div>
+          </div>
+          <input type="hidden" id="f-referrer">
+        </div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn" id="modal-cancel" type="button">取消</button><button class="btn pr" type="button" onclick="saveClient()">保存</button></div>
+  </div>
+</div>
+
+<script>
+// XSS protection
+function esc(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Supabase
+var SURL='https://ypdgbpvykijqvtqttnrz.supabase.co';
+var SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwZGdicHZ5a2lqcXZ0cXR0bnJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NDc5MjIsImV4cCI6MjA5NzQyMzkyMn0.dNzIzD_8-EpeHS3eHWYUA0rEKo7BDtQGndV2YS3q7qs';
+var _sb=null;
+function getSb(){
+  if(_sb) return _sb;
+  if(typeof supabase==='undefined') throw new Error('Supabase library not loaded');
+  _sb=supabase.createClient(SURL,SKEY);
+  return _sb;
+}
+
+// Pinyin
+var PY={'阿':'a','爱':'a','安':'a','巴':'b','白':'b','北':'b','不':'b','才':'c','草':'c','曾':'c','陈':'c','成':'c','程':'c','出':'c','春':'c','大':'d','党':'d','道':'d','的':'d','地':'d','东':'d','都':'d','多':'d','二':'e','发':'f','方':'f','非':'f','冯':'f','富':'f','干':'g','高':'g','工':'g','公':'g','关':'g','广':'g','国':'g','果':'g','哈':'h','海':'h','韩':'h','好':'h','和':'h','红':'h','胡':'h','花':'h','华':'h','黄':'h','会':'h','机':'j','家':'j','将':'j','江':'j','进':'j','金':'j','经':'j','九':'j','就':'j','开':'k','看':'k','可':'k','客':'k','来':'l','老':'l','李':'l','林':'l','刘':'l','六':'l','龙':'l','路':'l','罗':'l','马':'m','毛':'m','明':'m','名':'m','那':'n','南':'n','你':'n','年':'n','牛':'n','女':'n','欧':'o','盘':'p','朋':'p','平':'p','潘':'p','彭':'p','七':'q','起':'q','钱':'q','强':'q','清':'q','全':'q','人':'r','日':'r','荣':'r','三':'s','山':'s','上':'s','深':'s','生':'s','石':'s','水':'s','四':'s','宋':'s','苏':'s','孙':'s','他':'t','太':'t','唐':'t','天':'t','田':'t','通':'t','万':'w','王':'w','文':'w','吴':'w','武':'w','西':'x','先':'x','小':'x','谢':'x','新':'x','许':'x','徐':'x','肖':'x','阳':'y','叶':'y','一':'y','应':'y','永':'y','有':'y','于':'y','元':'y','月':'y','云':'y','杨':'y','姚':'y','张':'z','赵':'z','中':'z','周':'z','朱':'z','郑':'z','钟':'z'};
+function pyIni(s){if(!s)return'';var r='';for(var i=0;i<s.length;i++){var p=PY[s[i]];r+=p?p[0]:s[i].toLowerCase()}return r}
+
+// UUID
+function uuidv4(){if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID();return'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16)})}
+
+// Password hash
+async function hashPw(pw){
+  var buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
+}
+
+// State
+var currentUser=null;
+var myClients=[];
+var allClients=[];
+var allUsers=[];
+var auditLog=[];
+var dupeLog=[];
+var filterVal='all';
+var editId=null;
+var selId=null;
+var platRows=[];
+var treeCol=new Set();
+var _dupTimer=null;
+
+function isAdmin(){return currentUser&&currentUser.role==='admin'}
+function viewClients(){return isAdmin()?allClients:myClients}
+
+// Constants
+var PLATS=[
+  {id:'line',label:'Line',color:'#06c755'},
+  {id:'tg',label:'Telegram',color:'#2aabee'},
+  {id:'wechat',label:'微信',color:'#07c160'},
+  {id:'wa',label:'WhatsApp',color:'#25d366'},
+  {id:'ig',label:'Instagram',color:'#e1306c'},
+  {id:'fb',label:'Facebook',color:'#1877f2'},
+  {id:'twitter',label:'X/Twitter',color:'#000'},
+  {id:'phone',label:'电话/SMS',color:'#6b6b65'},
+  {id:'other',label:'其他',color:'#a0a09a'}
+];
+function pInfo(id){return PLATS.find(function(p){return p.id===id})||{id:id,label:id,color:'#a0a09a'}}
+
+var STATUS={active:{l:'正式',cls:'active'},potential:{l:'潜在',cls:'potential'},inactive:{l:'已流失',cls:'inactive'}};
+var VALUE_MAP={high:{l:'高',cls:'high'},mid:{l:'中',cls:'mid'},low:{l:'普通',cls:'low'}};
+var AV=[{bg:'#eff6ff',c:'#1d4ed8'},{bg:'#f0fdf4',c:'#15803d'},{bg:'#fffbeb',c:'#b45309'},{bg:'#fef2f2',c:'#b91c1c'},{bg:'#f5f3ff',c:'#6d28d9'},{bg:'#fdf2f8',c:'#be185d'},{bg:'#f0fdfa',c:'#0f766e'},{bg:'#fefce8',c:'#a16207'}];
+
+function avCol(n){var h=0;for(var i=0;i<(n||'').length;i++)h=((h<<5)-h+n.charCodeAt(i))|0;return AV[Math.abs(h)%AV.length]}
+function ini(n){if(!n)return'?';var p=n.trim().split(/\s+/);return p.length>=2?(p[0][0]+(p[1][0]||'')).toUpperCase():n.slice(0,2).toUpperCase()}
+function fmtD(ts){if(!ts)return'';return new Date(ts).toLocaleDateString('zh-CN',{month:'2-digit',day:'2-digit'})}
+function fmtDF(ts){if(!ts)return'';return new Date(ts).toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'})}
+function fmtDT(ts){if(!ts)return'';var d=new Date(ts);return d.toLocaleDateString('zh-CN',{month:'2-digit',day:'2-digit'})+' '+d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}
+function daysSince(ts){if(!ts)return 0;return Math.floor((Date.now()-ts)/86400000)}
+function getC(id){return allClients.find(function(x){return x.id===id})}
+function cname(id){var c=getC(id);return c?c.name:'(已删除)'}
+function lastContact(c){var fus=c.followups||[];if(!fus.length)return c.created_at||0;return Math.max.apply(null,fus.map(function(f){return f.date||0}))}
+function matchQ(c,q){
+  if(!q)return true;
+  var fields=[c.name||'',c.company||'',c.phone||'',c.email||'',c.tags||''].join(' ').toLowerCase();
+  if(fields.includes(q))return true;
+  if((c.platforms||[]).some(function(p){return p.handle.toLowerCase().includes(q)}))return true;
+  if(pyIni(c.name||'').includes(q)||pyIni(c.company||'').includes(q))return true;
+  return false;
+}
+function countDown(cid,seen){seen=seen||new Set();if(seen.has(cid))return 0;seen.add(cid);return allClients.filter(function(x){return x.referrer_id===cid}).reduce(function(s,x){return s+1+countDown(x.id,new Set(seen))},0)}
+function isDesc(anc,target){var seen=new Set();function dfs(id){if(seen.has(id))return false;seen.add(id);return allClients.filter(function(x){return x.referrer_id===id}).some(function(x){return x.id===target||dfs(x.id)})}return dfs(anc)}
+
+function setSyncStatus(s,msg){
+  var dot=document.getElementById('sync-dot'),txt=document.getElementById('sync-txt');
+  if(!dot)return;
+  dot.className='sync-dot'+(s==='syncing'?' syncing':s==='err'?' err':'');
+  if(txt)txt.textContent=msg||'已同步';
+}
+
+// AUTH
+function showLogin(){
+  document.getElementById('auth-login').style.display='flex';
+  document.getElementById('auth-reg').style.display='none';
+}
+function showReg(){
+  document.getElementById('auth-login').style.display='none';
+  document.getElementById('auth-reg').style.display='flex';
+}
+
+async function doLogin(){
+  var username=document.getElementById('l-user').value.trim();
+  var password=document.getElementById('l-pass').value;
+  var err=document.getElementById('l-err');
+  var btn=document.getElementById('l-btn');
+  err.textContent='';
+  if(!username||!password){err.textContent='请填写用户名和密码';return}
+  btn.disabled=true;btn.textContent='登录中…';
+  try{
+    var hash=await hashPw(password);
+    var res=await getSb().from('users').select('*').eq('username',username).eq('password_hash',hash).single();
+    if(res.error||!res.data){err.textContent='用户名或密码错误';btn.disabled=false;btn.textContent='登录';return}
+    currentUser=res.data;
+    startApp();
+  }catch(e){err.textContent='连接失败：'+e.message;btn.disabled=false;btn.textContent='登录'}
+}
+
+async function doRegister(){
+  var username=document.getElementById('r-user').value.trim();
+  var display=document.getElementById('r-display').value.trim();
+  var pw=document.getElementById('r-pass').value;
+  var pw2=document.getElementById('r-pass2').value;
+  var err=document.getElementById('r-err');
+  var btn=document.getElementById('r-btn');
+  err.textContent='';
+  if(!username||!display||!pw){err.textContent='请填写所有必填项';return}
+  if(pw!==pw2){err.textContent='两次密码不一致';return}
+  if(pw.length<6){err.textContent='密码至少6位';return}
+  btn.disabled=true;btn.textContent='注册中…';
+  try{
+    var hash=await hashPw(pw);
+    var check=await getSb().from('users').select('id').eq('username',username);
+    if(check.data&&check.data.length>0){err.textContent='用户名已存在';btn.disabled=false;btn.textContent='注册';return}
+    var newUser={id:uuidv4(),username:username,password_hash:hash,display_name:display,role:'staff',created_at:Date.now()};
+    var res=await getSb().from('users').insert(newUser).select().single();
+    if(res.error){err.textContent='注册失败：'+res.error.message;btn.disabled=false;btn.textContent='注册';return}
+    currentUser=res.data;
+    startApp();
+  }catch(e){err.textContent='连接失败：'+e.message;btn.disabled=false;btn.textContent='注册'}
+}
+
+function doLogout(){
+  currentUser=null;myClients=[];allClients=[];allUsers=[];auditLog=[];dupeLog=[];
+  document.getElementById('app').classList.remove('on');
+  showLogin();
+  document.getElementById('l-user').value='';
+  document.getElementById('l-pass').value='';
+  document.getElementById('l-err').textContent='';
+  document.getElementById('l-btn').disabled=false;
+  document.getElementById('l-btn').textContent='登录';
+}
+
+async function startApp(){
+  document.getElementById('auth-login').style.display='none';
+  document.getElementById('auth-reg').style.display='none';
+  document.getElementById('app').classList.add('on');
+  var by=currentUser.display_name||currentUser.username;
+  document.getElementById('uname-lbl').textContent=by;
+  var rb=document.getElementById('role-lbl');
+  rb.textContent=isAdmin()?'管理员':'业务员';
+  rb.className='role-badge '+(isAdmin()?'admin':'staff');
+  document.querySelectorAll('.admin-only').forEach(function(el){el.style.display=isAdmin()?'':'none'});
+  document.getElementById('admin-stats').style.display=isAdmin()?'block':'none';
+  await loadAllData();
+  renderDash();
+  setInterval(updateRdot,60000);
+}
+
+async function loadAllData(){
+  setSyncStatus('syncing','同步中…');
+  try{
+    var r1=await getSb().from('clients').select('*').order('created_at',{ascending:false});
+    if(r1.data)allClients=r1.data;
+    myClients=allClients.filter(function(c){return c.owner_id===currentUser.id});
+    var logQ=getSb().from('audit_log').select('*').order('at',{ascending:false}).limit(500);
+    if(!isAdmin())logQ=logQ.eq('by_user_id',currentUser.id);
+    var r2=await logQ;if(r2.data)auditLog=r2.data;
+    var dupQ=getSb().from('dupe_log').select('*').order('at',{ascending:false}).limit(200);
+    if(!isAdmin())dupQ=dupQ.eq('by_user_id',currentUser.id);
+    var r3=await dupQ;if(r3.data)dupeLog=r3.data;
+    if(isAdmin()){var r4=await getSb().from('users').select('*').order('created_at',{ascending:true});if(r4.data)allUsers=r4.data}
+    if(isAdmin()){
+      var sel=document.getElementById('fowner');
+      if(sel){
+        sel.innerHTML='<option value="">全部业务员</option>';
+        var seen={};
+        allClients.forEach(function(c){if(c.owner_id&&!seen[c.owner_id]){seen[c.owner_id]=true;sel.innerHTML+='<option value="'+esc(c.owner_id)+'">'+esc(c.owner_name||c.owner_id)+'</option>'}});
+      }
+    }
+    setSyncStatus('ok','已同步');
+  }catch(e){setSyncStatus('err','同步失败')}
+}
+
+// AUDIT LOG
+var DIFF_FIELDS=[{key:'name',label:'姓名'},{key:'company',label:'公司'},{key:'phone',label:'电话'},{key:'email',label:'邮箱'},{key:'status',label:'状态'},{key:'value',label:'价值'},{key:'tags',label:'标签'},{key:'referrer_id',label:'介绍人'}];
+var STATUS_L={active:'正式',potential:'潜在',inactive:'已流失'};
+var VALUE_L={high:'高价值',mid:'中价值',low:'普通'};
+function calcDiff(oldC,newData){
+  var diffs=[];
+  DIFF_FIELDS.forEach(function(f){
+    var ov=String(oldC[f.key]||''),nv=String(newData[f.key]||'');
+    if(ov!==nv){
+      var ovL=ov,nvL=nv;
+      if(f.key==='status'){ovL=STATUS_L[ov]||ov;nvL=STATUS_L[nv]||nv}
+      if(f.key==='value'){ovL=VALUE_L[ov]||ov;nvL=VALUE_L[nv]||nv}
+      if(f.key==='referrer_id'){ovL=ov?cname(ov):'无';nvL=nv?cname(nv):'无'}
+      diffs.push({field:f.label,oldVal:ovL,newVal:nvL});
+    }
+  });
+  var op=JSON.stringify((oldC.platforms||[]).map(function(p){return p.type+':'+p.handle}).sort());
+  var np=JSON.stringify((newData.platforms||[]).map(function(p){return p.type+':'+p.handle}).sort());
+  if(op!==np)diffs.push({field:'平台账号',oldVal:(oldC.platforms||[]).map(function(p){return p.type+':'+p.handle}).join(', ')||'无',newVal:(newData.platforms||[]).map(function(p){return p.type+':'+p.handle}).join(', ')||'无'});
+  return diffs;
+}
+async function addAuditLog(action,clientId,clientName,diff){
+  var by=currentUser?currentUser.display_name||currentUser.username:'';
+  var log={id:uuidv4(),action:action,client_id:clientId,client_name:clientName,diff:diff||null,by:by,by_user_id:currentUser?currentUser.id:null,at:Date.now()};
+  auditLog.unshift(log);
+  await getSb().from('audit_log').insert(log);
+}
+
+// DEDUP
+function detectDupes(candidate,excludeId){
+  var results=[],name=(candidate.name||'').trim().toLowerCase(),company=(candidate.company||'').trim().toLowerCase(),phone=(candidate.phone||'').replace(/\s/g,''),platforms=candidate.platforms||[];
+  allClients.forEach(function(c){
+    if(c.id===excludeId)return;
+    var reasons=[];
+    if(name&&company){var cn=(c.name||'').trim().toLowerCase(),cc=(c.company||'').trim().toLowerCase();if(cn===name&&cc===company)reasons.push('姓名与公司相同')}
+    if(phone&&phone.length>=6){var cp=(c.phone||'').replace(/\s/g,'');if(cp&&cp===phone)reasons.push('手机号相同')}
+    platforms.forEach(function(p){if(!p.handle.trim())return;(c.platforms||[]).forEach(function(cp2){if(cp2.type===p.type&&cp2.handle.trim().toLowerCase()===p.handle.trim().toLowerCase())reasons.push(pInfo(p.type).label+'账号相同')})});
+    if(reasons.length)results.push({client:c,reasons:reasons});
+  });
+  return results;
+}
+async function addDupeLog(newClientId,newClientName,dupes){
+  var by=currentUser?currentUser.display_name||currentUser.username:'';
+  var log={id:uuidv4(),at:Date.now(),by:by,by_user_id:currentUser?currentUser.id:null,new_client_id:newClientId,new_client_name:newClientName,dupes:dupes.map(function(d){return{clientId:d.client.id,clientName:d.client.name,ownerName:d.client.owner_name||'',reasons:d.reasons}})};
+  dupeLog.unshift(log);
+  await getSb().from('dupe_log').insert(log);
+}
+function debounceDupCheck(){clearTimeout(_dupTimer);_dupTimer=setTimeout(runDupCheck,400)}
+function runDupCheck(){
+  var candidate={name:document.getElementById('f-name').value,company:document.getElementById('f-company').value,phone:document.getElementById('f-phone').value,platforms:platRows.filter(function(p){return p.handle.trim()})};
+  var dupes=detectDupes(candidate,editId);
+  var box=document.getElementById('dup-alert-box');
+  if(!dupes.length){box.style.display='none';box.innerHTML='';return}
+  box.style.display='block';
+  var html='<div class="dup-alert"><div class="dup-alert-ttl">&#x26A0;&#xFE0F; 发现'+dupes.length+'个疑似重复客户：</div>';
+  dupes.forEach(function(d){
+    var ac=avCol(d.client.name);
+    var cross=d.client.owner_id!==currentUser.id;
+    html+=`<div class="dup-card" onclick="gotoClientFromModal('${d.client.id}')">`;
+    html+=`<div class="av" style="width:26px;height:26px;font-size:10px;background:${ac.bg};color:${ac.c}">${esc(ini(d.client.name))}</div>`;
+    html+=`<div><div style="font-size:13px;font-weight:500">${esc(d.client.name)}${cross?' <span style="font-size:11px;color:var(--pu)">（'+esc(d.client.owner_name||'其他')+'）</span>':''}</div>`;
+    html+=`<div style="font-size:11.5px;color:var(--t2)">${esc(d.client.company||'')}${d.client.phone?' · '+esc(d.client.phone):''}</div>`;
+    html+=`<div class="dup-reason">${d.reasons.map(esc).join(' · ')}</div></div></div>`;
+  });
+  html+='<div style="font-size:11.5px;color:var(--t2);margin-top:6px">如确认是不同人可直接保存。</div></div>';
+  box.innerHTML=html;
+}
+function gotoClientFromModal(id){closeModal();gotoPage('clients');setTimeout(function(){openDetail(id)},40)}
+
+// REMINDERS
+function getAllReminders(){var list=[];myClients.forEach(function(c){(c.followups||[]).forEach(function(f,fi){if(f.remindAt&&!f.remindDone)list.push({clientId:c.id,clientName:c.name,fi:fi,text:f.text,type:f.type,remindAt:f.remindAt})})});return list}
+function updateRdot(){
+  var n=getAllReminders().filter(function(r){return r.remindAt<=Date.now()+86400000}).length;
+  var el=document.getElementById('d-rem');if(el)el.textContent=getAllReminders().filter(function(r){return r.remindAt<=Date.now()}).length;
+  var dot=document.getElementById('rdot');if(dot)dot.style.display=n>0?'block':'none';
+}
+async function markRemindDone(cid,fi){
+  var c=getC(cid);if(!c)return;
+  if(c.followups&&c.followups[fi])c.followups[fi].remindDone=true;
+  await getSb().from('clients').update({followups:c.followups}).eq('id',cid);
+  renderReminders();updateRdot();
+}
+
+// NAVIGATION
+document.querySelectorAll('.ni[data-page]').forEach(function(el){el.addEventListener('click',function(){gotoPage(el.dataset.page)})});
+document.querySelectorAll('.ft[data-filter]').forEach(function(el){el.addEventListener('click',function(){filterVal=el.dataset.filter;document.querySelectorAll('.ft').forEach(function(t){t.classList.remove('on')});el.classList.add('on');renderTable()})});
+
+function gotoPage(pg){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on')});
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on')});
+  var pEl=document.getElementById('page-'+pg);if(pEl)pEl.classList.add('on');
+  var nav=document.querySelector('.ni[data-page="'+pg+'"]');if(nav)nav.classList.add('on');
+  if(pg==='dashboard')renderDash();
+  if(pg==='clients')renderTable();
+  if(pg==='reminders')renderReminders();
+  if(pg==='tree')renderTree();
+  if(pg==='followups')renderAllFu();
+  if(pg==='dupes')renderDupeLog();
+  if(pg==='auditlog')renderAuditLog();
+  if(pg==='users'&&isAdmin())renderUserList();
+}
+
+// DASHBOARD
+function renderDash(){
+  if(!currentUser)return;
+  var vc=viewClients();
+  document.getElementById('d-tot').textContent=vc.length;
+  document.getElementById('d-act').textContent=vc.filter(function(c){return c.status==='active'}).length;
+  document.getElementById('d-pot').textContent=vc.filter(function(c){return c.status==='potential'}).length;
+  document.getElementById('bdg').textContent=vc.length;
+  updateRdot();
+  if(isAdmin()){
+    document.getElementById('g-tot').textContent=allClients.length;
+    document.getElementById('g-staff').textContent=allUsers.filter(function(u){return u.role==='staff'}).length;
+    var tod=new Date();tod.setHours(0,0,0,0);
+    document.getElementById('g-today').textContent=allClients.filter(function(c){return c.created_at>=tod.getTime()}).length;
+  }
+  var rec=vc.slice(0,6);
+  var el=document.getElementById('d-recent');
+  if(!rec.length){el.innerHTML='<div class="no-data">暂无客户</div>';return}
+  var html=`<table><thead><tr><th>姓名</th><th>状态</th><th>最近联系</th><th>介绍人</th>${isAdmin()?'<th>业务员</th>':''}</tr></thead><tbody>`;
+  rec.forEach(function(c){
+    var ac=avCol(c.name),s=STATUS[c.status]||STATUS.potential;
+    var days=daysSince(lastContact(c));
+    var lcClass=days>30?'lc-overdue':days>14?'lc-warn':'lc-ok';
+    var lcText=days===0?'今天':days+'天前';
+    html+=`<tr class="clk" onclick="gotoPage('clients');setTimeout(function(){openDetail('${c.id}')},40)">`;
+    html+=`<td><div class="cel"><div class="av" style="background:${ac.bg};color:${ac.c}">${esc(ini(c.name))}</div><div><div class="nn">${esc(c.name)}</div><div class="nc">${esc(c.company||'')}</div></div></div></td>`;
+    html+=`<td><span class="bs ${s.cls}">${s.l}</span></td>`;
+    html+=`<td class="${lcClass}">${lcText}</td>`;
+    html+=`<td style="color:var(--t2)">${esc(c.referrer_id?cname(c.referrer_id):'—')}</td>`;
+    if(isAdmin())html+=`<td style="color:var(--t2)">${esc(c.owner_name||'—')}</td>`;
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+
+// CLIENT TABLE
+function getFiltered(){
+  var q=(document.getElementById('q')&&document.getElementById('q').value||'').toLowerCase().trim();
+  var fv=document.getElementById('fv')&&document.getElementById('fv').value||'';
+  var flc=parseInt(document.getElementById('flc')&&document.getElementById('flc').value||0);
+  var fsort=document.getElementById('fsort')&&document.getElementById('fsort').value||'created_desc';
+  var fowner=isAdmin()&&document.getElementById('fowner')&&document.getElementById('fowner').value||'';
+  var rows=viewClients().filter(function(c){
+    if(filterVal!=='all'&&c.status!==filterVal)return false;
+    if(fv&&c.value!==fv)return false;
+    if(flc){var days=daysSince(lastContact(c));if(days<flc)return false}
+    if(fowner&&c.owner_id!==fowner)return false;
+    return matchQ(c,q);
+  });
+  rows.sort(function(a,b){
+    if(fsort==='created_desc')return(b.created_at||0)-(a.created_at||0);
+    if(fsort==='created_asc')return(a.created_at||0)-(b.created_at||0);
+    if(fsort==='lastcontact_asc')return lastContact(a)-lastContact(b);
+    if(fsort==='lastcontact_desc')return lastContact(b)-lastContact(a);
+    if(fsort==='name_asc')return(a.name||'').localeCompare(b.name||'','zh');
+    if(fsort==='value_desc'){var vm={high:3,mid:2,low:1};return(vm[b.value]||1)-(vm[a.value]||1)}
+    return 0;
+  });
+  return rows;
+}
+
+function renderTable(){
+  document.getElementById('bdg').textContent=viewClients().length;
+  var tbody=document.getElementById('tbody'),empty=document.getElementById('tbl-empty');
+  if(!tbody)return;
+  var rows=getFiltered();
+  if(!rows.length){tbody.innerHTML='';empty.style.display='block';return}
+  empty.style.display='none';
+  var html='';
+  rows.forEach(function(c){
+    var ac=avCol(c.name),s=STATUS[c.status]||STATUS.potential,v=VALUE_MAP[c.value||'low']||VALUE_MAP.low;
+    var tags=(c.tags||'').split(',').map(function(t){return t.trim()}).filter(Boolean);
+    var ph=(c.platforms||[]).map(function(p){var pi=pInfo(p.type);return`<span class="plat-badge"><span class="plat-dot" style="background:${pi.color}"></span>${esc(pi.label)}</span>`}).join('');
+    var rh=c.referrer_id?`<span style="font-size:12px;color:var(--at);cursor:pointer" onclick="event.stopPropagation();openDetail('${c.referrer_id}')">${esc(cname(c.referrer_id))}</span>`:'<span style="color:var(--t3)">—</span>';
+    var days=daysSince(lastContact(c));
+    var lcClass=days>30?'lc-overdue':days>14?'lc-warn':'lc-ok';
+    var lcText=days===0?'今天':days+'天前';
+    var canEdit=isAdmin()||c.owner_id===currentUser.id;
+    html+=`<tr class="clk" onclick="openDetail('${c.id}')">`;
+    html+=`<td><div class="cel"><div class="av" style="background:${ac.bg};color:${ac.c}">${esc(ini(c.name))}</div><div><div class="nn">${esc(c.name)}</div><div class="nc">${esc(c.company||'')}</div></div></div></td>`;
+    html+=`<td><span class="bs ${s.cls}">${s.l}</span></td>`;
+    html+=`<td><span class="vbadge ${v.cls}">${v.l}</span></td>`;
+    html+=`<td>${ph||'<span style="color:var(--t3)">—</span>'}</td>`;
+    html+=`<td>${rh}</td>`;
+    html+=`<td class="${lcClass}">${lcText}</td>`;
+    if(isAdmin())html+=`<td style="color:var(--t2);font-size:12px">${esc(c.owner_name||'—')}</td>`;
+    html+=`<td>${tags.map(function(t){return`<span class="tag">${esc(t)}</span>`}).join('')}</td>`;
+    html+=`<td><div class="acts">`;
+    if(canEdit)html+=`<button class="ab" onclick="event.stopPropagation();openEdit('${c.id}')" title="编辑">&#x270F;&#xFE0F;</button>`;
+    if(canEdit)html+=`<button class="ab dl" onclick="event.stopPropagation();delClient('${c.id}')" title="删除">&#x1F5D1;&#xFE0F;</button>`;
+    html+=`</div></td></tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+// DETAIL PANEL
+function openDetail(id){
+  selId=id;var c=getC(id);if(!c)return;
+  document.getElementById('dp').classList.add('on');
+  var ac=avCol(c.name),s=STATUS[c.status]||STATUS.potential,v=VALUE_MAP[c.value||'low']||VALUE_MAP.low;
+  var tags=(c.tags||'').split(',').map(function(t){return t.trim()}).filter(Boolean);
+  var chain=[],cur=c,vis=new Set();
+  while(cur.referrer_id&&!vis.has(cur.referrer_id)){vis.add(cur.referrer_id);var p2=getC(cur.referrer_id);if(!p2)break;chain.unshift(p2);cur=p2}
+  var direct=allClients.filter(function(x){return x.referrer_id===id});
+  var totalDown=countDown(id);
+  var ph=(c.platforms||[]).length?(c.platforms||[]).map(function(p){var pi=pInfo(p.type);return`<div class="dr"><span class="dl">${esc(pi.label)}</span><span class="dv">${esc(p.handle)}</span></div>`}).join(''):'<div class="dr"><span class="dv" style="color:var(--t3)">暂无</span></div>';
+  var chainHtml=chain.length?'<div class="chain">'+chain.map(function(p){var pa=avCol(p.name);return`<span class="cnode" onclick="openDetail('${p.id}')"><div class="av" style="width:17px;height:17px;font-size:8px;background:${pa.bg};color:${pa.c}">${esc(ini(p.name))}</div>${esc(p.name)}</span><span class="carrow">&#x203A;</span>`}).join('')+`<span class="cnode me">${esc(c.name)}</span></div>`:'<span style="font-size:12px;color:var(--t3)">无（直接联系）</span>';
+  var refsHtml=direct.length?direct.map(function(r){var ra=avCol(r.name),rc=countDown(r.id),cross=r.owner_id!==c.owner_id;return`<div class="ref-child" onclick="openDetail('${r.id}')"><div class="rc-av" style="background:${ra.bg};color:${ra.c}">${esc(ini(r.name))}</div><div><div style="font-size:12.5px;font-weight:500">${esc(r.name)}${cross?` <span style="font-size:10px;color:var(--pu)">${esc(r.owner_name||'')}</span>`:''}</div><div style="font-size:11px;color:var(--t2)">${esc(r.company||'')}</div></div>${rc?`<span style="font-size:11px;color:var(--t3);margin-left:auto">+${rc}人</span>`:''}</div>`}).join(''):'<span style="font-size:12px;color:var(--t3)">暂无</span>';
+  var notes=c.notes||[];
+  var notesHtml=notes.length?notes.map(function(n,i){return`<div class="note-item"><div class="note-meta">${fmtDF(n.date)}${n.by?' · '+esc(n.by):''}<button class="ndel" type="button" onclick="delNote('${id}',${i})">&#x2715;</button></div><div class="note-txt">${esc(n.text)}</div></div>`}).join(''):'<div style="font-size:12px;color:var(--t3);margin-bottom:6px">暂无备注</div>';
+  var fuTypeMap={call:'电话',meet:'见面',msg:'消息',other:'其他'};
+  var fus=c.followups||[];
+  var fuHtml=fus.length?fus.map(function(f,i){
+    var tc=f.type||'other',tl=fuTypeMap[tc]||'其他';
+    var remHtml='';
+    if(f.remindAt){var remMs=f.remindAt-Date.now(),rdays=Math.ceil(remMs/86400000),rdone=f.remindDone;remHtml=`<span style="font-size:10px;margin-left:4px;${rdone?'color:var(--t3)':remMs<=0?'color:var(--rd)':'color:var(--am)'}">${rdone?'✓已完成':remMs<=0?'⚠ 已到期':'⏰ '+rdays+'天后'}</span>`}
+    return`<div class="fu-item"><div class="fu-left"><span class="fu-date">${fmtD(f.date)}</span><span class="fu-type ${tc}">${tl}</span>${remHtml}</div><span class="fu-text">${esc(f.text)}</span><button class="fu-del" type="button" onclick="delFu('${id}',${i})" title="删除">&#x2715;</button></div>`;
+  }).join(''):'<div style="font-size:12px;color:var(--t3);margin-bottom:6px">暂无跟进记录</div>';
+  var days=daysSince(lastContact(c)),lcText=days===0?'今天':days+'天前';
+  var canEdit=isAdmin()||c.owner_id===currentUser.id;
+  var html=`
+    <div class="dp-av-row"><div class="dp-av" style="background:${ac.bg};color:${ac.c}">${esc(ini(c.name))}</div><div><div class="dp-name">${esc(c.name)}</div><div class="dp-co">${esc(c.company||'')}</div></div></div>
+    <div class="ds"><div class="ds-ttl">基本信息</div>
+      <div class="dr"><span class="dl">状态</span><span class="dv"><span class="bs ${s.cls}">${s.l}</span></span></div>
+      <div class="dr"><span class="dl">价值</span><span class="dv"><span class="vbadge ${v.cls}">${v.l}</span></span></div>
+      <div class="dr"><span class="dl">最近联系</span><span class="dv" style="${days>30?'color:var(--rd)':days>14?'color:var(--am)':''}">${lcText}</span></div>
+      <div class="dr"><span class="dl">电话</span><span class="dv">${esc(c.phone||'—')}</span></div>
+      <div class="dr"><span class="dl">邮箱</span><span class="dv">${esc(c.email||'—')}</span></div>
+      ${tags.length?`<div class="dr"><span class="dl">标签</span><span class="dv">${tags.map(function(t){return`<span class="tag">${esc(t)}</span>`}).join('')}</span></div>`:''}
+      <div class="dr"><span class="dl">归属</span><span class="dv">${esc(c.owner_name||'—')}</span></div>
+      <div class="dr"><span class="dl">创建</span><span class="dv">${fmtDF(c.created_at)}${c.created_by?' · '+esc(c.created_by):''}</span></div>
+      ${c.updated_at?`<div class="dr"><span class="dl">编辑</span><span class="dv">${fmtDF(c.updated_at)}${c.updated_by?' · '+esc(c.updated_by):''}</span></div>`:''}
+    </div>
+    <div class="ds"><div class="ds-ttl">社交平台</div>${ph}</div>
+    <div class="ds"><div class="ds-ttl">介绍来源链路</div>${chainHtml}</div>
+    <div class="ds"><div class="ds-ttl">介绍出去的客户${totalDown?` <span style="font-size:10px;color:var(--t3);font-weight:400">共${totalDown}人</span>`:''}</div>${refsHtml}</div>
+    <div class="ds"><div class="ds-ttl">备注</div><div id="dp-notes">${notesHtml}</div>
+      ${canEdit?`<div class="add-note"><textarea id="note-in" placeholder="添加备注…"></textarea><button class="btn sm pr" type="button" onclick="addNote()">保存备注</button></div>`:''}
+    </div>
+    <div class="ds"><div class="ds-ttl">跟进记录</div><div id="dp-fu">${fuHtml}</div>
+      ${canEdit?`<div class="add-fu"><div class="add-fu-fields"><div style="display:flex;gap:6px"><select id="fu-type"><option value="msg">消息</option><option value="call">电话</option><option value="meet">见面</option><option value="other">其他</option></select><input type="text" id="fu-in" placeholder="跟进内容…" autocomplete="off" onkeydown="if(event.key==='Enter'&&!event.shiftKey)addFu()"></div><div class="remind-row"><label>⏰ 提醒：</label><input type="number" id="fu-remind" min="0" max="365" placeholder="0"><label>天后</label></div></div><button class="btn sm pr" type="button" onclick="addFu()" style="align-self:flex-start">添加</button></div>`:''}
+    </div>
+    ${canEdit?`<div style="display:flex;gap:7px;margin-top:12px"><button class="btn" style="flex:1" type="button" onclick="openEdit('${id}')">&#x270F;&#xFE0F; 编辑</button><button class="btn dng" type="button" onclick="delClient('${id}')">&#x1F5D1;&#xFE0F; 删除</button></div>`:`<div style="font-size:12px;color:var(--t3);margin-top:12px;text-align:center">此客户由 ${esc(c.owner_name||'其他业务员')} 管理</div>`}
+  `;
+  document.getElementById('dp-body').innerHTML=html;
+}
+function closeDetail(){document.getElementById('dp').classList.remove('on');selId=null}
+document.getElementById('dp-close').addEventListener('click',closeDetail);
+
+async function addNote(){
+  var ta=document.getElementById('note-in'),text=ta&&ta.value.trim();if(!text||!selId)return;
+  var c=getC(selId);if(!c)return;
+  if(!Array.isArray(c.notes))c.notes=[];
+  c.notes.unshift({date:Date.now(),text:text,by:currentUser?currentUser.display_name||currentUser.username:''});
+  setSyncStatus('syncing','保存中…');
+  await getSb().from('clients').update({notes:c.notes}).eq('id',selId);
+  setSyncStatus('ok','已同步');ta.value='';openDetail(selId);
+}
+async function delNote(id,idx){
+  var c=getC(id);if(!c||!Array.isArray(c.notes))return;
+  if(!confirm('删除此备注？'))return;
+  c.notes.splice(idx,1);await getSb().from('clients').update({notes:c.notes}).eq('id',id);openDetail(id);
+}
+async function addFu(){
+  var inp=document.getElementById('fu-in'),text=inp&&inp.value.trim();if(!text||!selId)return;
+  var c=getC(selId);if(!c)return;
+  if(!Array.isArray(c.followups))c.followups=[];
+  var type=document.getElementById('fu-type').value||'msg';
+  var remDays=parseInt(document.getElementById('fu-remind').value)||0;
+  var fu={date:Date.now(),text:text,type:type,by:currentUser?currentUser.display_name||currentUser.username:''};
+  if(remDays>0)fu.remindAt=Date.now()+remDays*86400000;
+  c.followups.unshift(fu);
+  setSyncStatus('syncing','保存中…');
+  await getSb().from('clients').update({followups:c.followups}).eq('id',selId);
+  setSyncStatus('ok','已同步');
+  inp.value='';document.getElementById('fu-remind').value='';openDetail(selId);updateRdot();
+}
+async function delFu(id,idx){
+  var c=getC(id);if(!c||!Array.isArray(c.followups))return;
+  if(!confirm('删除此跟进记录？'))return;
+  c.followups.splice(idx,1);await getSb().from('clients').update({followups:c.followups}).eq('id',id);openDetail(id);updateRdot();
+}
+
+// REMINDERS PAGE
+function renderReminders(){
+  var all=getAllReminders(),now=Date.now();
+  var overdue=all.filter(function(r){return r.remindAt<=now}),upcoming=all.filter(function(r){return r.remindAt>now});
+  var doneFus=[];myClients.forEach(function(c){(c.followups||[]).forEach(function(f,fi){if(f.remindAt&&f.remindDone)doneFus.push({clientId:c.id,clientName:c.name,fi:fi,text:f.text,type:f.type,remindAt:f.remindAt})})});
+  doneFus=doneFus.slice(0,20);
+  var fuTypeMap={call:'电话',meet:'见面',msg:'消息',other:'其他'};
+  function remItemHtml(r,isDone){
+    var remMs=r.remindAt-now,rdays=Math.ceil(remMs/86400000);
+    var rdueText=isDone?'已完成':remMs<=0?'已到期':'还有 '+rdays+' 天';
+    var rdueClass=isDone?'ri-due ok':remMs<=0?'ri-due':rdays<=1?'ri-due soon':'ri-due ok';
+    return`<div class="remind-item${isDone?' done':''}"><div class="ri-left"><span class="${rdueClass}">${rdueText}</span><span class="ri-client" onclick="gotoPage('clients');setTimeout(function(){openDetail('${r.clientId}')},30)">${esc(r.clientName)}</span><span style="font-size:10px;color:var(--t3)">${fuTypeMap[r.type]||''}</span></div><span class="ri-text">${esc(r.text)}</span><div class="ri-acts">${!isDone?`<button class="btn sm" type="button" onclick="markRemindDone('${r.clientId}',${r.fi})">完成</button>`:''}</div></div>`;
+  }
+  document.getElementById('rem-pending').innerHTML=(overdue.length?`<div style="padding:8px 14px 0;font-size:12px;color:var(--rd);font-weight:500">⚠ ${overdue.length} 条已到期</div>`:'')+( upcoming.length?`<div style="padding:6px 14px 0;font-size:12px;color:var(--am)">⏰ ${upcoming.length} 条即将到期</div>`:'')+( overdue.length+upcoming.length?`<div style="padding:10px 14px">${overdue.concat(upcoming).map(function(r){return remItemHtml(r,false)}).join('')}</div>`:'<div class="no-data">暂无待办</div>');
+  document.getElementById('rem-done').innerHTML=`<div style="padding:10px 14px">${doneFus.map(function(r){return remItemHtml(r,true)}).join('')}${doneFus.length?'':'<div class="no-data">暂无</div>'}</div>`;
+}
+
+// TREE
+function renderTree(){
+  var wrap=document.getElementById('tree-wrap');
+  if(!myClients.length){wrap.innerHTML='<div class="no-data">暂无客户数据</div>';return}
+  var myIds=new Set(myClients.map(function(c){return c.id}));
+  var roots=myClients.filter(function(c){return!c.referrer_id||!myIds.has(c.referrer_id)});
+  function nodeHtml(c,depth){
+    var ac=avCol(c.name),children=myClients.filter(function(x){return x.referrer_id===c.id});
+    var hasKids=children.length>0,total=countDown(c.id),col=treeCol.has(c.id),v=VALUE_MAP[c.value||'low']||VALUE_MAP.low;
+    var h=`<div class="tree-node"><div class="tree-row">${depth>0?'<div class="t-ind"></div>':''}<div class="tcn" onclick="gotoPage('clients');setTimeout(function(){openDetail('${c.id}')},30)"><div class="tav" style="background:${ac.bg};color:${ac.c}">${esc(ini(c.name))}</div><div><div class="tn">${esc(c.name)}</div><div class="tc2">${esc(c.company||'')}</div></div><span class="vbadge ${v.cls}" style="margin-left:6px;flex-shrink:0">${v.l}</span>${total?`<span class="tcnt">&#x1F517; ${total}人</span>`:''}</div>${hasKids?`<button class="ttog" type="button" onclick="event.stopPropagation();toggleTree('${c.id}')">${col?'＋':'－'}</button>`:''}</div>`;
+    if(hasKids&&!col)h+=`<div class="ch-wrap">${children.map(function(ch){return nodeHtml(ch,depth+1)}).join('')}</div>`;
+    return h+'</div>';
+  }
+  wrap.innerHTML=roots.slice(0,50).map(function(r){return nodeHtml(r,0)}).join('')+(roots.length>50?'<div class="no-data" style="margin-top:12px">仅显示前50个根节点</div>':'');
+}
+function toggleTree(id){if(treeCol.has(id))treeCol.delete(id);else treeCol.add(id);renderTree()}
+
+// FOLLOWUPS PAGE
+function renderAllFu(){
+  var fuTypeMap={call:'电话',meet:'见面',msg:'消息',other:'其他'},all=[];
+  myClients.forEach(function(c){(c.followups||[]).forEach(function(f){all.push({date:f.date,text:f.text,type:f.type,by:f.by,cn:c.name,cid:c.id})})});
+  all.sort(function(a,b){return(b.date||0)-(a.date||0)});
+  var el=document.getElementById('all-fu');
+  if(!all.length){el.innerHTML='<div class="no-data">暂无跟进记录</div>';return}
+  var html='<table><thead><tr><th>客户</th><th>类型</th><th>内容</th><th>操作人</th><th>时间</th></tr></thead><tbody>';
+  all.forEach(function(f){
+    var tc=f.type||'other',tl=fuTypeMap[tc]||'其他';
+    html+=`<tr class="clk" onclick="gotoPage('clients');setTimeout(function(){openDetail('${f.cid}')},30)"><td style="font-weight:500">${esc(f.cn)}</td><td><span class="fu-type ${tc}">${tl}</span></td><td>${esc(f.text)}</td><td style="color:var(--t2)">${esc(f.by||'—')}</td><td style="color:var(--t2)">${fmtDF(f.date)}</td></tr>`;
+  });
+  el.innerHTML=html+'</tbody></table>';
+}
+
+// DUPE LOG PAGE
+function renderDupeLog(){
+  var el=document.getElementById('dup-log-list');
+  if(!dupeLog.length){el.innerHTML='<div class="no-data">暂无去重记录</div>';return}
+  var html='';
+  dupeLog.forEach(function(d){
+    var dupes=d.dupes||[];
+    html+=`<div class="log-item"><div class="log-head"><span class="log-action dup">去重检测</span><span class="log-client">${esc(d.new_client_name)}</span><span class="log-time">${fmtDT(d.at)}</span><span class="log-by">${esc(d.by)}</span></div><div class="log-diff">`;
+    dupes.forEach(function(dup){
+      html+=`<div class="diff-row"><span class="diff-field">疑似重复</span><span style="font-size:12px">${esc(dup.clientName)}${dup.ownerName?' <span style="color:var(--pu);font-size:11px">('+esc(dup.ownerName)+')</span>':''} <span style="color:var(--am)">(${dup.reasons.map(esc).join(' · ')})</span><button class="btn sm" style="margin-left:8px" type="button" onclick="gotoPage('clients');setTimeout(function(){openDetail('${dup.clientId}')},30)">查看</button></span></div>`;
+    });
+    html+='</div></div>';
+  });
+  el.innerHTML=html;
+}
+async function clearDupeLog(){
+  if(!confirm('清空去重记录？'))return;dupeLog=[];
+  await getSb().from('dupe_log').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  renderDupeLog();
+}
+
+// AUDIT LOG PAGE
+function renderAuditLog(){
+  var el=document.getElementById('audit-list');
+  if(!auditLog.length){el.innerHTML='<div class="no-data">暂无操作日志</div>';return}
+  var actionLabel={create:'新建',update:'编辑',delete:'删除',dup:'去重'};
+  var html='';
+  auditLog.forEach(function(log){
+    var diff=log.diff||[];
+    var diffHtml=diff.length?'<div class="log-diff">'+diff.map(function(d){return`<div class="diff-row"><span class="diff-field">${esc(d.field)}</span><span class="diff-old">${esc(d.oldVal)}</span><span style="color:var(--t3);font-size:11px;padding:0 4px">→</span><span class="diff-new">${esc(d.newVal)}</span></div>`}).join('')+'</div>':'';
+    html+=`<div class="log-item"><div class="log-head"><span class="log-action ${log.action}">${actionLabel[log.action]||log.action}</span><span class="log-client">${esc(log.client_name)}</span><span class="log-time">${fmtDT(log.at)}</span><span class="log-by">${esc(log.by)}</span></div>${diffHtml}</div>`;
+  });
+  el.innerHTML=html;
+}
+async function clearAuditLog(){
+  if(!confirm('清空操作日志？'))return;auditLog=[];
+  await getSb().from('audit_log').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  renderAuditLog();
+}
+
+// USER MANAGEMENT PAGE
+function renderUserList(){
+  var el=document.getElementById('user-list');
+  if(!allUsers.length){el.innerHTML='<div class="no-data">暂无用户</div>';return}
+  var html='';
+  allUsers.forEach(function(u){
+    var clientCount=allClients.filter(function(c){return c.owner_id===u.id}).length;
+    var ac=avCol(u.display_name||u.username);
+    html+=`<div class="user-card"><div class="av" style="background:${ac.bg};color:${ac.c}">${esc(ini(u.display_name||u.username))}</div><div class="user-info"><div class="user-name">${esc(u.display_name||u.username)} <span style="font-size:12px;color:var(--t3)">@${esc(u.username)}</span></div><div class="user-meta">客户数：${clientCount} · 注册：${fmtDF(u.created_at)}</div></div><span class="role-badge ${u.role==='admin'?'admin':'staff'}">${u.role==='admin'?'管理员':'业务员'}</span>${u.id!==currentUser.id?`<button class="btn sm" style="margin-left:8px" onclick="toggleRole('${u.id}','${u.role}')">${u.role==='admin'?'降为业务员':'升为管理员'}</button>`:''}</div>`;
+  });
+  el.innerHTML=html;
+}
+async function toggleRole(uid,currentRole){
+  var newRole=currentRole==='admin'?'staff':'admin';
+  if(!confirm('确认'+(newRole==='admin'?'升为管理员':'降为业务员')+'？'))return;
+  await getSb().from('users').update({role:newRole}).eq('id',uid);
+  var u=allUsers.find(function(x){return x.id===uid});if(u)u.role=newRole;
+  renderUserList();
+}
+
+// MODAL
+function addPlatRow(type,handle){platRows.push({type:type||'line',handle:handle||''});renderPlatRows()}
+function renderPlatRows(){
+  var html='';
+  platRows.forEach(function(p,i){
+    var opts=PLATS.map(function(pl){return`<option value="${pl.id}"${pl.id===p.type?' selected':''}>${pl.label}</option>`}).join('');
+    html+=`<div class="plat-row"><select onchange="platRows[${i}].type=this.value;debounceDupCheck()">${opts}</select><input type="text" value="${esc(p.handle)}" placeholder="账号 / 用户名" autocomplete="off" oninput="platRows[${i}].handle=this.value;debounceDupCheck()"><button class="plat-del" type="button" onclick="platRows.splice(${i},1);renderPlatRows()">&#x2715;</button></div>`;
+  });
+  document.getElementById('plat-rows').innerHTML=html;
+}
+
+var refExcludeId=null;
+function openRefDd(){filterRefDd();document.getElementById('ref-dd').classList.add('open')}
+function filterRefDd(){
+  var q=(document.getElementById('ref-search').value||'').toLowerCase();
+  var dd=document.getElementById('ref-dd'),cur=document.getElementById('f-referrer').value;
+  var opts=allClients.filter(function(c){return c.id!==refExcludeId&&matchQ(c,q)});
+  var html=`<div class="ref-opt${cur?'':' sel'}" onclick="selectRef('','')"><span style="color:var(--t3)">无介绍人</span></div>`;
+  html+=opts.slice(0,40).map(function(c){
+    var ac=avCol(c.name),isOther=c.owner_id!==currentUser.id;
+    return`<div class="ref-opt${c.id===cur?' sel':''}" onclick="selectRef('${c.id}','${esc(c.name).replace(/'/g,"\'")}')"><div class="av" style="width:20px;height:20px;font-size:9px;background:${ac.bg};color:${ac.c}">${esc(ini(c.name))}</div><span>${esc(c.name)}${isOther?` <span style="font-size:10px;color:var(--pu)">${esc(c.owner_name||'其他')}</span>`:''}</span></div>`;
+  }).join('');
+  if(!opts.length&&q)html+='<div style="padding:10px 12px;font-size:13px;color:var(--t3)">无匹配</div>';
+  dd.innerHTML=html;
+}
+function selectRef(id,name){
+  document.getElementById('f-referrer').value=id;
+  document.getElementById('ref-search').value=id?name:'';
+  document.getElementById('ref-clr').style.display=id?'block':'none';
+  document.getElementById('ref-dd').classList.remove('open');
+}
+function clearRef(){selectRef('','')}
+document.addEventListener('click',function(e){if(!e.target.closest('.ref-wrap'))document.getElementById('ref-dd').classList.remove('open')});
+
+function openAdd(){
+  editId=null;refExcludeId=null;platRows=[];
+  document.getElementById('modal-ttl').textContent='新建客户';
+  ['f-name','f-company','f-phone','f-email','f-tags'].forEach(function(i){document.getElementById(i).value=''});
+  document.getElementById('f-status').value='potential';
+  document.getElementById('f-value').value='low';
+  selectRef('',''); // 介绍人默认为空，用户自行选填
+  document.getElementById('dup-alert-box').style.display='none';
+  document.getElementById('dup-alert-box').innerHTML='';
+  renderPlatRows();
+  document.getElementById('ov').classList.add('on');
+}
+function openEdit(id){
+  var c=getC(id);if(!c)return;
+  editId=id;refExcludeId=id;
+  platRows=(c.platforms||[]).map(function(p){return{type:p.type,handle:p.handle}});
+  document.getElementById('modal-ttl').textContent='编辑客户';
+  document.getElementById('f-name').value=c.name||'';
+  document.getElementById('f-company').value=c.company||'';
+  document.getElementById('f-phone').value=c.phone||'';
+  document.getElementById('f-email').value=c.email||'';
+  document.getElementById('f-status').value=c.status||'potential';
+  document.getElementById('f-value').value=c.value||'low';
+  document.getElementById('f-tags').value=c.tags||'';
+  selectRef(c.referrer_id||'',c.referrer_id?cname(c.referrer_id):'');
+  document.getElementById('dup-alert-box').style.display='none';
+  document.getElementById('dup-alert-box').innerHTML='';
+  renderPlatRows();
+  document.getElementById('ov').classList.add('on');
+}
+function closeModal(){document.getElementById('ov').classList.remove('on');clearTimeout(_dupTimer)}
+document.getElementById('modal-close').addEventListener('click',closeModal);
+document.getElementById('modal-cancel').addEventListener('click',closeModal);
+document.getElementById('ov').addEventListener('click',function(e){if(e.target===e.currentTarget)closeModal()});
+
+async function saveClient(){
+  var name=document.getElementById('f-name').value.trim();
+  if(!name){alert('请填写客户姓名');return}
+  var refId=document.getElementById('f-referrer').value||null;
+  if(refId===editId){alert('不能将自己设为介绍人');return}
+  if(refId&&editId&&isDesc(editId,refId)){alert('不能将下线客户设为介绍人');return}
+  var platforms=platRows.filter(function(p){return p.handle.trim()}).map(function(p){return{type:p.type,handle:p.handle.trim()}});
+  var by=currentUser?currentUser.display_name||currentUser.username:'';
+  var data={name:name,company:document.getElementById('f-company').value.trim(),phone:document.getElementById('f-phone').value.trim(),email:document.getElementById('f-email').value.trim(),status:document.getElementById('f-status').value,value:document.getElementById('f-value').value||'low',tags:document.getElementById('f-tags').value.trim(),referrer_id:refId,platforms:platforms};
+  var dupes=detectDupes(data,editId);if(dupes.length)await addDupeLog(editId||'new',name,dupes);
+  setSyncStatus('syncing','保存中…');
+  try{
+    if(editId){
+      var oldC=getC(editId);var diff=calcDiff(oldC,data);
+      data.updated_at=Date.now();data.updated_by=by;
+      var res=await getSb().from('clients').update(data).eq('id',editId).select().single();
+      if(res.error)throw res.error;
+      var idx=allClients.findIndex(function(x){return x.id===editId});if(idx>=0)allClients[idx]=Object.assign({},allClients[idx],data);
+      var mi=myClients.findIndex(function(x){return x.id===editId});if(mi>=0)myClients[mi]=Object.assign({},myClients[mi],data);
+      if(diff.length)await addAuditLog('update',editId,name,diff);
+    }else{
+      data.id=uuidv4();data.created_at=Date.now();data.created_by=by;
+      data.owner_id=currentUser.id;data.owner_name=by;
+      data.followups=[];data.notes=[];
+      var res=await getSb().from('clients').insert(data).select().single();
+      if(res.error)throw res.error;
+      allClients.unshift(res.data);myClients.unshift(res.data);
+      await addAuditLog('create',data.id,name,null);
+    }
+    setSyncStatus('ok','已同步');closeModal();renderTable();renderDash();
+    if(selId)openDetail(selId);
+  }catch(e){setSyncStatus('err','保存失败');alert('保存失败：'+e.message)}
+}
+
+async function delClient(id){
+  var c=getC(id);if(!c)return;
+  if(!confirm('确认删除「'+c.name+'」？'))return;
+  setSyncStatus('syncing','删除中…');
+  try{
+    var descendants=[];function findDesc(cid){allClients.filter(function(x){return x.referrer_id===cid}).forEach(function(x){descendants.push(x.id);findDesc(x.id)})}
+    findDesc(id);
+    if(descendants.length){await getSb().from('clients').update({referrer_id:null}).in('id',descendants);descendants.forEach(function(did){var dc=getC(did);if(dc)dc.referrer_id=null})}
+    await getSb().from('clients').delete().eq('id',id);
+    await addAuditLog('delete',id,c.name,null);
+    allClients=allClients.filter(function(x){return x.id!==id});
+    myClients=myClients.filter(function(x){return x.id!==id});
+    setSyncStatus('ok','已同步');if(selId===id)closeDetail();renderTable();renderDash();
+  }catch(e){setSyncStatus('err','删除失败');alert('删除失败：'+e.message)}
+}
+
+// KEYBOARD
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    if(document.getElementById('ov').classList.contains('on')){closeModal();return}
+    closeDetail();
+  }
+});
+</script>
+</body>
+</html>
